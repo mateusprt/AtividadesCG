@@ -26,6 +26,7 @@ include_directories(${CMAKE_SOURCE_DIR}/common)
 # Lista de exercícios (por enquanto só tem o HelloTriangle)
 set(EXERCISES
     Hello3D
+    Cube
 )
 
 add_compile_options(-Wno-pragmas)
