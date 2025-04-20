@@ -1,11 +1,3 @@
-/* Hello Triangle - código adaptado de https://learnopengl.com/#!Getting-started/Hello-Triangle
- *
- * Adaptado por Rossana Baptista Queiroz
- * para as disciplinas de Processamento Gráfico/Computação Gráfica - Unisinos
- * Versão inicial: 7/4/2017
- * Última atualização em 07/03/2025
- */
-
 #include <iostream>
 #include <string>
 #include <assert.h>
@@ -23,6 +15,11 @@ using namespace std;
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+struct Cube {
+	glm::vec3 position;
+	glm::vec3 scale;
+	glm::vec3 rotation;
+};
 
 // Protótipo da função de callback de teclado
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -39,11 +36,13 @@ const GLchar* vertexShaderSource = "#version 450\n"
 "layout (location = 0) in vec3 position;\n"
 "layout (location = 1) in vec3 color;\n"
 "uniform mat4 model;\n"
+"uniform mat4 view;\n"
+"uniform mat4 projection;\n"
 "out vec4 finalColor;\n"
 "void main()\n"
 "{\n"
 //...pode ter mais linhas de código aqui!
-"gl_Position = model * vec4(position, 1.0);\n"
+"gl_Position = projection * view * model * vec4(position, 1.0);\n"
 "finalColor = vec4(color, 1.0);\n"
 "}\0";
 
@@ -57,20 +56,13 @@ const GLchar* fragmentShaderSource = "#version 450\n"
 "}\n\0";
 
 bool rotateX=false, rotateY=false, rotateZ=false;
+float scale = 1.0f;
 
 // Função MAIN
 int main()
 {
 	// Inicialização da GLFW
 	glfwInit();
-
-	//Muita atenção aqui: alguns ambientes não aceitam essas configurações
-	//Você deve adaptar para a versão do OpenGL suportada por sua placa
-	//Sugestão: comente essas linhas de código para desobrir a versão e
-	//depois atualize (por exemplo: 4.5 com 4 e 5)
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Criação da janela GLFW
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Ola 3D -- Mateus!", nullptr, nullptr);
@@ -97,23 +89,19 @@ int main()
 	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
 
-
-	// Compilando e buildando o programa de shader
 	GLuint shaderID = setupShader();
-
-	// Gerando um buffer simples, com a geometria de um triângulo
 	GLuint VAO = setupGeometry();
-
-
 	glUseProgram(shaderID);
-
-	glm::mat4 model = glm::mat4(1); //matriz identidade;
-	GLint modelLoc = glGetUniformLocation(shaderID, "model");
-	//
-	model = glm::rotate(model, /*(GLfloat)glfwGetTime()*/glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
 	glEnable(GL_DEPTH_TEST);
+
+	GLint modelLoc = glGetUniformLocation(shaderID, "model");
+  GLint viewLoc = glGetUniformLocation(shaderID, "view");
+  GLint projLoc = glGetUniformLocation(shaderID, "projection");
+
+	glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -7.0f));
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIDTH/HEIGHT, 0.1f, 100.0f);
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
 
 	// Loop da aplicação - "game loop"
@@ -121,49 +109,45 @@ int main()
 	{
 		// Checa se houveram eventos de input (key pressed, mouse moved etc.) e chama as funções de callback correspondentes
 		glfwPollEvents();
-
-		// Limpa o buffer de cor
 		glClearColor(1.0f, 1.0f, 1.0f, 1.0f); //cor de fundo
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+		float angle = (GLfloat)glfwGetTime();
 		glLineWidth(10);
 		glPointSize(20);
 
-		float angle = (GLfloat)glfwGetTime();
-
-		model = glm::mat4(1); 
-		if (rotateX)
-		{
-			model = glm::rotate(model, angle, glm::vec3(1.0f, 0.0f, 0.0f));
-			
-		}
-		else if (rotateY)
-		{
-			model = glm::rotate(model, angle, glm::vec3(0.0f, 1.0f, 0.0f));
-
-		}
-		else if (rotateZ)
-		{
-			model = glm::rotate(model, angle, glm::vec3(0.0f, 0.0f, 1.0f));
-
-		}
-
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		// Chamada de desenho - drawcall
-		// Poligono Preenchido - GL_TRIANGLES
-		
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		// Chamada de desenho - drawcall
-		// CONTORNO - GL_LINE_LOOP
-		
-		glDrawArrays(GL_POINTS, 0, 36);
+		// Lista de posições dos cubos
+		glm::vec3 cubePositions[] = {
+			glm::vec3(0.0f, 0.0f, 0.0f),
+			glm::vec3(2.0f, 0.0f, 0.0f),
+			glm::vec3(-2.0f, 0.0f, 0.0f)
+		};
+
+		for(int x = 0; x < cubePositions->length(); x++) {
+			glm::mat4 model = glm::mat4(1);
+			model = glm::translate(model, cubePositions[x]);
+			model = glm::scale(model, glm::vec3(scale)); // Aplica a escala
+			
+			if (rotateX) {
+				model = glm::rotate(model, angle, glm::vec3(1.0f, 0.0f, 0.0f));
+			} else if (rotateY) {
+				model = glm::rotate(model, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+			} else if (rotateZ) {
+				model = glm::rotate(model, angle, glm::vec3(0.0f, 0.0f, 1.0f));
+			}
+
+			// desenha o cubo
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+			glDrawArrays(GL_POINTS, 0, 36);
+		}
+
+	
 		glBindVertexArray(0);
-
-		// Troca os buffers da tela
-		glfwSwapBuffers(window);
+		glfwSwapBuffers(window); // Troca os buffers da tela
 	}
+	
 	// Pede pra OpenGL desalocar os buffers
 	glDeleteVertexArrays(1, &VAO);
 	// Finaliza a execução da GLFW, limpando os recursos alocados por ela
@@ -200,7 +184,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		rotateZ = true;
 	}
 
-
+	// Tecla [
+	if (key == GLFW_KEY_RIGHT_BRACKET && action == GLFW_PRESS) {
+		scale -= 0.1f;
+		if (scale < 0.1f) scale = 0.1f; // Limite mínimo
+	}
+	
+	// Tecla ]
+	if (key == GLFW_KEY_BACKSLASH && action == GLFW_PRESS) {
+		scale += 0.1f;
+	}
 
 }
 
@@ -307,14 +300,13 @@ int setupGeometry()
      0.5,  0.5, -0.5,  1.0, 0.647, 0.0,  // Laranja
     -0.5,  0.5, -0.5,  1.0, 0.647, 0.0,  // Laranja
 
-    // Baixo
+    // Baixo (Rosa e Verde Limão)
     -0.5, -0.5, -0.5,  1.0, 0.75, 0.8,  // Rosa
      0.5, -0.5, -0.5,  1.0, 0.75, 0.8,  // Rosa
      0.5, -0.5,  0.5,  1.0, 0.75, 0.8,  // Rosa
     -0.5, -0.5, -0.5,  0.5, 1.0, 0.0,  // Verde Limão
      0.5, -0.5,  0.5,  0.5, 1.0, 0.0,  // Verde Limão
     -0.5, -0.5,  0.5,  0.5, 1.0, 0.0,  // Verde Limão
-
 	};
 
 	GLuint VBO, VAO;
