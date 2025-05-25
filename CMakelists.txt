@@ -21,18 +21,28 @@ FetchContent_MakeAvailable(glfw)
 # Adiciona as pastas de cabeçalhos
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/include/glad)
+include_directories(${CMAKE_SOURCE_DIR}/include/glm)
+include_directories(${CMAKE_SOURCE_DIR}/include/stb_image)
 include_directories(${CMAKE_SOURCE_DIR}/common)
+include_directories(${CMAKE_SOURCE_DIR}/common/shader)
 
-# Lista de exercícios (por enquanto só tem o HelloTriangle)
+# Lista de exercícios
 set(EXERCISES
     Hello3D
     Cube
+    Textures
 )
 
 add_compile_options(-Wno-pragmas)
 
 # Loop para criar um executável para cada exercício
 foreach(EXERCISE ${EXERCISES})
-    add_executable(${EXERCISE} src/${EXERCISE}.cpp Common/glad.c)
+    add_executable(
+      ${EXERCISE} 
+      src/${EXERCISE}.cpp
+      Common/glad.c
+      Common/Shader.cpp
+      include/stb_image/stb_image.cpp
+    )
     target_link_libraries(${EXERCISE} glfw opengl32)
 endforeach()
