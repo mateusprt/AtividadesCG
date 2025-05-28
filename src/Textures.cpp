@@ -53,11 +53,11 @@ struct Object
 
 };
 
-const GLchar* VERTEX_SHADER_PATH = "D:\\Unisinos_GCC_Hibrido\\CGCCHibrido\\src\\phong.vs";
-const GLchar* FRAGMENT_SHADER_PATH = "D:\\Unisinos_GCC_Hibrido\\CGCCHibrido\\src\\phong.fs";
+const GLchar* VERTEX_SHADER_PATH = "../src/phong.vs";
+const GLchar* FRAGMENT_SHADER_PATH = "../src/phong.fs";
 
-const string OBJ_PATH = "D:\\Unisinos_GCC_Hibrido\\CGCCHibrido\\Modelos3D\\aratwearingabackpack\\obj\\model.obj";
-const string TEXTURE_PATH = "D:\\Unisinos_GCC_Hibrido\\CGCCHibrido\\Modelos3D\\aratwearingabackpack\\textures\\texture_1.jpeg";
+const string OBJ_PATH = "../Modelos3D/aratwearingabackpack/obj/model.obj";
+const string TEXTURE_PATH = "../Modelos3D/aratwearingabackpack/textures/texture_1.jpeg";
 
 int main()
 {
