@@ -31,6 +31,7 @@ set(EXERCISES
     Hello3D
     Cube
     Textures
+    Iluminacao
 )
 
 add_compile_options(-Wno-pragmas)

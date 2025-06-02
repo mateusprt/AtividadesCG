@@ -50,14 +50,23 @@ struct Object
 	int nVertices; //nro de vértices
 	glm::mat4 model; //matriz de transformações do objeto
 	float ka, kd, ks; //coeficientes de iluminação - material do objeto
-
 };
+
+struct Material {
+    glm::vec3 Ka;       // cor ambiente
+    glm::vec3 Ks;       // cor especular
+    float Ns;           // shininess
+    std::string map_Kd; // caminho da textura difusa
+};
+
+Material loadMTL(const string& mtlPath);
 
 const GLchar* VERTEX_SHADER_PATH = "../shaders/phong.vs";
 const GLchar* FRAGMENT_SHADER_PATH = "../shaders/phong.fs";
 
 const string OBJ_PATH = "../Modelos3D/aratwearingabackpack/obj/model.obj";
 const string TEXTURE_PATH = "../Modelos3D/aratwearingabackpack/textures/texture_1.jpeg";
+const string OBJ_MTL_PATH = "../Modelos3D/aratwearingabackpack/material/model.mtl";
 
 int main()
 {
@@ -94,8 +103,11 @@ int main()
 
 	Object obj;
 	obj.VAO = loadSimpleOBJ(OBJ_PATH,obj.nVertices);
+	
 	int texWidth,texHeight;
 	obj.texID = loadTexture(TEXTURE_PATH,texWidth,texHeight);
+
+	Material mat = loadMTL(OBJ_MTL_PATH);
 
 	glUseProgram(shader.ID);
 
@@ -115,15 +127,11 @@ int main()
 
 	//Buffer de textura no shader
 	glUniform1i(glGetUniformLocation(shader.ID, "texBuffer"), 0);
-
 	glEnable(GL_DEPTH_TEST);
-	glActiveTexture(GL_TEXTURE0);
 
-	//Propriedades da superfície
-	shader.setFloat("ka",0.2);
-	shader.setFloat("ks", 0.5);
-	shader.setFloat("kd", 0.5);
-	shader.setFloat("q", 10.0);
+	shader.setVec3("Ka", mat.Ka.x, mat.Ka.y, mat.Ka.z);
+	shader.setVec3("Ks", mat.Ks.x, mat.Ks.y, mat.Ks.z);
+	shader.setFloat("q", mat.Ns);
 
 	//Propriedades da fonte de luz
 	shader.setVec3("lightPos",-2.0, 10.0, 3.0);
@@ -176,7 +184,9 @@ int main()
 		// Chamada de desenho - drawcall
 		// Poligono Preenchido - GL_TRIANGLES
 		glBindVertexArray(obj.VAO);
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D,obj.texID);
+		shader.setInt("diffuseTexture", 0);
 		glDrawArrays(GL_TRIANGLES, 0, obj.nVertices);
 
 
@@ -238,98 +248,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	{
 		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	}
-
-
-
-
-}
-
-// Esta função está bastante harcoded - objetivo é criar os buffers que armazenam a 
-// geometria de um triângulo
-// Apenas atributo coordenada nos vértices
-// 1 VBO com as coordenadas, VAO com apenas 1 ponteiro para atributo
-// A função retorna o identificador do VAO
-int setupGeometry()
-{
-	// Aqui setamos as coordenadas x, y e z do triângulo e as armazenamos de forma
-	// sequencial, já visando mandar para o VBO (Vertex Buffer Objects)
-	// Cada atributo do vértice (coordenada, cores, coordenadas de textura, normal, etc)
-	// Pode ser arazenado em um VBO único ou em VBOs separados
-	GLfloat vertices[] = {
-
-		//Base da pirâmide: 2 triângulos
-		//x    y    z    r    g    b
-		-0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
-		-0.5, -0.5,  0.5, 0.0, 1.0, 1.0,
-		 0.5, -0.5, -0.5, 1.0, 0.0, 1.0,
-
-		 -0.5, -0.5, 0.5, 1.0, 1.0, 0.0,
-		  0.5, -0.5,  0.5, 0.0, 1.0, 1.0,
-		  0.5, -0.5, -0.5, 1.0, 0.0, 1.0,
-
-		 //
-		 -0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
-		  0.0,  0.5,  0.0, 1.0, 1.0, 0.0,
-		  0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
-
-		  -0.5, -0.5, -0.5, 1.0, 0.0, 1.0,
-		  0.0,  0.5,  0.0, 1.0, 0.0, 1.0,
-		  -0.5, -0.5, 0.5, 1.0, 0.0, 1.0,
-
-		   -0.5, -0.5, 0.5, 1.0, 1.0, 0.0,
-		  0.0,  0.5,  0.0, 1.0, 1.0, 0.0,
-		  0.5, -0.5, 0.5, 1.0, 1.0, 0.0,
-
-		   0.5, -0.5, 0.5, 0.0, 1.0, 1.0,
-		  0.0,  0.5,  0.0, 0.0, 1.0, 1.0,
-		  0.5, -0.5, -0.5, 0.0, 1.0, 1.0,
-
-
-	};
-
-	GLuint VBO, VAO;
-
-	//Geração do identificador do VBO
-	glGenBuffers(1, &VBO);
-
-	//Faz a conexão (vincula) do buffer como um buffer de array
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-	//Envia os dados do array de floats para o buffer da OpenGl
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	//Geração do identificador do VAO (Vertex Array Object)
-	glGenVertexArrays(1, &VAO);
-
-	// Vincula (bind) o VAO primeiro, e em seguida  conecta e seta o(s) buffer(s) de vértices
-	// e os ponteiros para os atributos 
-	glBindVertexArray(VAO);
-	
-	//Para cada atributo do vertice, criamos um "AttribPointer" (ponteiro para o atributo), indicando: 
-	// Localização no shader * (a localização dos atributos devem ser correspondentes no layout especificado no vertex shader)
-	// Numero de valores que o atributo tem (por ex, 3 coordenadas xyz) 
-	// Tipo do dado
-	// Se está normalizado (entre zero e um)
-	// Tamanho em bytes 
-	// Deslocamento a partir do byte zero 
-	
-	//Atributo posição (x, y, z)
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-
-	//Atributo cor (r, g, b)
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3*sizeof(GLfloat)));
-	glEnableVertexAttribArray(1);
-
-
-	// Observe que isso é permitido, a chamada para glVertexAttribPointer registrou o VBO como o objeto de buffer de vértice 
-	// atualmente vinculado - para que depois possamos desvincular com segurança
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// Desvincula o VAO (é uma boa prática desvincular qualquer buffer ou array para evitar bugs medonhos)
-	glBindVertexArray(0);
-
-	return VAO;
 }
 
 int loadSimpleOBJ(string filePath, int &nVertices)
@@ -526,4 +444,34 @@ GLuint loadTexture(string filePath, int &width, int &height)
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return texID;
+}
+
+Material loadMTL(const std::string& filename) {
+    Material mat;
+    std::ifstream file(filename);
+    std::string line;
+    
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string key;
+        iss >> key;
+        
+        if (key == "Ka") {
+            float r, g, b;
+            iss >> r >> g >> b;
+            mat.Ka = glm::vec3(r, g, b);
+        } else if (key == "Ks") {
+            float r, g, b;
+            iss >> r >> g >> b;
+            mat.Ks = glm::vec3(r, g, b);
+        } else if (key == "Ns") {
+            float ns;
+            iss >> ns;
+            mat.Ns = ns;
+        } else if (key == "map_Kd") {
+            iss >> mat.map_Kd;
+        }
+    }
+    
+    return mat;
 }
