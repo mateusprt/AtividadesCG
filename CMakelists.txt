@@ -32,6 +32,7 @@ set(EXERCISES
     Cube
     Textures
     Iluminacao
+    Camera
 )
 
 add_compile_options(-Wno-pragmas)
